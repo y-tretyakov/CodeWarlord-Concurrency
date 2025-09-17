@@ -1,222 +1,324 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Продвинутый C#: Асинхронность и Производительность</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Chosen Palette: Cool Slate -->
-    <!-- Application Structure Plan: Создано одностраничное приложение (SPA) с вертикальной навигацией по темам. Такая структура выбрана для того, чтобы пользователь мог сфокусироваться на одной сложной теме за раз, не отвлекаясь на другую информацию. Контент для каждой темы загружается в основной области просмотра, что обеспечивает плавный и интуитивно понятный пользовательский опыт. Этот подход лучше, чем длинная страница с прокруткой, так как он позволяет быстро переключаться между интересующими разделами и способствует более глубокому изучению материала. Добавлен header для навигации по сайту и переключения темы, а также footer с информацией об авторе. -->
-    <!-- Visualization & Content Choices: 1. Асинхронность vs Параллелизм: Цель - сравнение. Используется HTML/CSS диаграмма для визуального разделения двух концепций, показывая одного "повара" (поток) с несколькими задачами (I/O) и нескольких "поваров" для одной большой задачи (CPU). 2. Дедлоки и ConfigureAwait: Цель - объяснение проблемы и решения. Представлена HTML/CSS диаграмма, иллюстрирующая цикл блокировки потоков, и примеры кода. 3. IAsyncEnumerable: Цель - демонстрация эффективности. Используется линейный график Chart.js, который наглядно сравнивает пиковое потребление памяти при использовании List<T> и стабильно низкое при стриминге с IAsyncEnumerable. 4. Обработка исключений: Цель - показать опасность async void. Простая HTML/CSS диаграмма показывает, как исключение "теряется" в async void и как оно корректно обрабатывается в async Task. 5. Frozen Collections: Цель - демонстрация прироста производительности. Столбчатая диаграмма Chart.js сравнивает скорость поиска в обычном Dictionary и FrozenDictionary, что наглядно доказывает преимущество для неизменяемых коллекций. -->
-    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            transition: background-color 0.3s, color 0.3s;
-        }
-        .light-theme {
-            background-color: #f8fafc;
-            color: #1e293b;
-        }
-        .dark-theme {
-            background-color: #1e293b;
-            color: #f8fafc;
-        }
-        .dark-theme .bg-white {
-            background-color: #2d3748;
-        }
-        .dark-theme .border-slate-200 {
-            border-color: #4a5568;
-        }
-        .dark-theme .text-slate-900 {
-            color: #f8fafc;
-        }
-        .dark-theme .text-slate-800 {
-            color: #f8fafc;
-        }
-        .dark-theme .text-slate-600 {
-            color: #cbd5e1;
-        }
-        .dark-theme .text-slate-700 {
-            color: #e2e8f0;
-        }
-        .dark-theme .hover\:bg-slate-100:hover {
-            background-color: #4a5568;
-        }
-        .dark-theme .nav-link.active {
-            background-color: #4a5568;
-            color: #93c5fd;
-        }
-        .dark-theme .bg-sky-50 {
-            background-color: #1c324e;
-        }
-        .dark-theme .border-sky-500 {
-            border-color: #0c4a6e;
-        }
-        .dark-theme .bg-slate-100 {
-            background-color: #2d3748;
-        }
-        .dark-theme .bg-sky-100 {
-            background-color: #1c324e;
-        }
-        .chart-container {
-            position: relative;
-            width: 100%;
-            max-width: 700px;
-            margin-left: auto;
-            margin-right: auto;
-            height: 350px;
-            max-height: 400px;
-        }
-        .code-block {
-            background-color: #1e293b;
-            color: #e2e8f0;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            overflow-x: auto;
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 0.875rem;
-        }
-        .code-block .keyword { color: #93c5fd; }
-        .code-block .type { color: #86efac; }
-        .code-block .method { color: #fcd34d; }
-        .code-block .comment { color: #6b7280; }
-        .nav-link.active {
-            background-color: #e0f2fe;
-            color: #0c4a6e;
-            font-weight: 600;
-        }
-        .dark-theme .code-block {
-            background-color: #1a202c;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Продвинутый C#: Асинхронность и Производительность</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Chosen Palette: Cool Slate -->
+  <!-- Application Structure Plan: Создано одностраничное приложение (SPA) с вертикальной навигацией по темам. Такая структура выбрана для того, чтобы пользователь мог сфокусироваться на одной сложной теме за раз, не отвлекаясь на другую информацию. Контент для каждой темы загружается в основной области просмотра, что обеспечивает плавный и интуитивно понятный пользовательский опыт. Этот подход лучше, чем длинная страница с прокруткой, так как он позволяет быстро переключаться между интересующими разделами и способствует более глубокому изучению материала. Добавлены header и footer с логотипами, которые меняются в зависимости от темы. -->
+  <!-- Visualization & Content Choices: 1. Асинхронность vs Параллелизм: Цель - сравнение. Используется HTML/CSS диаграмма для визуального разделения двух концепций, показывая одного "повара" (поток) с несколькими задачами (I/O) и нескольких "поваров" для одной большой задачи (CPU). 2. Дедлоки и ConfigureAwait: Цель - объяснение проблемы и решения. Представлена HTML/CSS диаграмма, иллюстрирующая цикл блокировки потоков, и примеры кода. 3. IAsyncEnumerable: Цель - демонстрация эффективности. Используется линейный график Chart.js, который наглядно сравнивает пиковое потребление памяти при использовании List<T> и стабильно низкое при стриминге с IAsyncEnumerable. 4. Обработка исключений: Цель - показать опасность async void. Простая HTML/CSS диаграмма показывает, как исключение "теряется" в async void и как оно корректно обрабатывается в async Task. 5. Frozen Collections: Цель - демонстрация прироста производительности. Столбчатая диаграмма Chart.js сравнивает скорость поиска в обычном Dictionary и FrozenDictionary, что наглядно доказывает преимущество для неизменяемых коллекций. -->
+  <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    .light-theme {
+      background-color: #f8fafc;
+      color: #1e293b;
+    }
+
+    .dark-theme {
+      background-color: #1e293b;
+      color: #f8fafc;
+    }
+
+    .dark-theme .bg-white {
+      background-color: #2d3748;
+    }
+
+    .dark-theme .border-slate-200 {
+      border-color: #4a5568;
+    }
+
+    .dark-theme .text-slate-900 {
+      color: #f8fafc;
+    }
+
+    .dark-theme .text-slate-800 {
+      color: #f8fafc;
+    }
+
+    .dark-theme .text-slate-600 {
+      color: #cbd5e1;
+    }
+
+    .dark-theme .text-slate-700 {
+      color: #e2e8f0;
+    }
+
+    .dark-theme .hover\:bg-slate-100:hover {
+      background-color: #4a5568;
+    }
+
+    .dark-theme .nav-link.active {
+      background-color: #4a5568;
+      color: #93c5fd;
+    }
+
+    .dark-theme .bg-sky-50 {
+      background-color: #1c324e;
+    }
+
+    .dark-theme .border-sky-500 {
+      border-color: #0c4a6e;
+    }
+
+    .dark-theme .bg-slate-100 {
+      background-color: #2d3748;
+    }
+
+    .dark-theme .bg-sky-100 {
+      background-color: #1c324e;
+    }
+
+    .chart-container {
+      position: relative;
+      width: 100%;
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+      height: 350px;
+      max-height: 400px;
+    }
+
+    .code-block {
+      background-color: #1e293b;
+      color: #e2e8f0;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      overflow-x: auto;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.875rem;
+    }
+
+    .code-block .keyword {
+      color: #93c5fd;
+    }
+
+    .code-block .type {
+      color: #86efac;
+    }
+
+    .code-block .method {
+      color: #fcd34d;
+    }
+
+    .code-block .comment {
+      color: #6b7280;
+    }
+
+    .nav-link.active {
+      background-color: #e0f2fe;
+      color: #0c4a6e;
+      font-weight: 600;
+    }
+
+    code {
+      color: #2563eb;
+      font-family: 'Courier New', Courier, monospace;
+      font-weight: 600;
+    }
+
+    .dark-theme code {
+      color: #60a5fa;
+    }
+
+    .dark-theme .bg-rose-100 {
+      background-color: #450a0a;
+      color: #fecaca;
+    }
+
+    .dark-theme .text-rose-700 {
+      color: #fda4af;
+    }
+
+    .dark-theme .border-rose-300 {
+      border-color: #9f1239;
+    }
+
+    .dark-theme .bg-sky-50 {
+      background-color: #0c4a6e;
+    }
+
+    .dark-theme .text-slate-500 {
+      color: #94a3b8;
+    }
+
+    .dark-theme .bg-slate-100 {
+      background-color: #475569;
+      color: #f8fafc;
+    }
+  </style>
 </head>
-<body class="light-theme">
 
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
-        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
-            <a href="#" class="flex items-center space-x-2">
-                <img id="header-logo" src="CodeWarlord-logo-light-1.2.jpg" alt="CodeWarlord Logo" class="h-8">
-            </a>
-            <button id="theme-toggle" class="p-2 rounded-full hover:bg-slate-100 transition-colors">
-                <span id="theme-icon" class="text-xl">🌙</span>
-            </button>
-        </div>
-    </header>
+<body class="dark-theme flex flex-col min-h-screen">
 
-    <div class="flex flex-col lg:flex-row min-h-screen">
-        <aside class="w-full lg:w-64 bg-white border-r border-slate-200 p-4 lg:fixed lg:h-full hidden lg:block">
-            <h1 class="text-xl font-bold text-sky-800 mb-6">Гид по C#</h1>
-            <nav id="desktop-nav" class="flex flex-col space-y-2">
-                <a href="#async-vs-parallel" class="nav-link p-3 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors">Асинхронность vs Параллелизм</a>
-                <a href="#deadlocks" class="nav-link p-3 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors">Дедлоки и ConfigureAwait</a>
-                <a href="#streaming" class="nav-link p-3 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors">Стриминг с IAsyncEnumerable</a>
-                <a href="#exceptions" class="nav-link p-3 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors">Обработка исключений</a>
-                <a href="#frozen" class="nav-link p-3 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors">Frozen коллекции</a>
-            </nav>
-        </aside>
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
+    <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-4">
+        <button id="menu-toggle"
+          class="p-2 rounded-full text-slate-900 dark:text-f8fafc hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors lg:hidden">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+          </svg>
+        </button>
+        <a href="#" class="flex items-center space-x-2">
+          <img id="header-logo" src="assets/img/CodeWarlord-logo-dark-1.2.png" alt="CodeWarlord Logo"
+            class="h-[90px] w-auto">
+        </a>
+      </div>
+      <button id="theme-toggle"
+        class="p-2 rounded-full text-slate-900 dark:text-f8fafc hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+        <svg id="theme-icon-light" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z">
+          </path>
+        </svg>
+        <svg id="theme-icon-dark" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+        </svg>
+      </button>
+    </div>
+  </header>
 
-        <main class="flex-1 lg:ml-64 p-4 sm:p-6 lg:p-8">
-            <header class="lg:hidden mb-4">
-                <select id="mobile-nav" class="w-full p-3 border border-slate-300 rounded-lg bg-white">
-                     <option value="#async-vs-parallel">Асинхронность vs Параллелизм</option>
-                     <option value="#deadlocks">Дедлоки и ConfigureAwait</option>
-                     <option value="#streaming">Стриминг с IAsyncEnumerable</option>
-                     <option value="#exceptions">Обработка исключений</option>
-                     <option value="#frozen">Frozen коллекции</option>
-                </select>
-            </header>
-            
-            <div id="content-container">
-                <section id="async-vs-parallel" class="content-section space-y-6">
-                    <h2 class="text-3xl font-bold text-slate-900">Асинхронность (I/O) vs. Параллелизм (CPU)</h2>
-                    <p class="text-lg text-slate-600">Ключевое различие между асинхронностью и параллелизмом заключается в том, как они управляют задачами. Асинхронность направлена на эффективное ожидание завершения операций, не блокируя основной поток (например, запрос к базе данных). Параллелизм же использует несколько потоков для одновременного выполнения нескольких вычислительных задач, задействуя несколько ядер процессора.</p>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
-                            <h3 class="font-bold text-xl mb-3 text-sky-700">Асинхронность (Один повар, много дел)</h3>
-                            <p class="mb-4">Один поток (повар) может запустить несколько долгих операций (поставить вариться суп, запекаться мясо), и пока они выполняются, заниматься другими делами, не простаивая.</p>
-                            <div class="border-2 border-dashed border-slate-300 p-4 rounded-lg text-center">
-                                <div class="text-4xl mb-2">🧑‍🍳</div>
-                                <div class="font-semibold">Поток 1</div>
-                                <div class="flex justify-around items-center mt-4">
-                                    <div class="text-center">
-                                        <div class="text-2xl">🥣</div>
-                                        <div class="text-xs">Запрос к API</div>
-                                    </div>
-                                    <div class="text-2xl animate-spin">⏳</div>
-                                    <div class="text-center">
-                                        <div class="text-2xl">📄</div>
-                                        <div class="text-xs">Чтение файла</div>
-                                    </div>
-                                </div>
-                                <p class="text-sm mt-4 text-slate-500">Поток не заблокирован, он свободен для других задач во время ожидания.</p>
-                            </div>
-                        </div>
+  <div class="flex-1 flex flex-row relative">
+    <aside id="sidebar"
+      class="fixed top-0 left-0 w-64 h-full bg-white border-r border-slate-200 p-4 pt-4 z-40 transition-transform transform -translate-x-full lg:translate-x-0 lg:fixed lg:h-screen lg:top-[110px] lg:bottom-0 lg:overflow-y-auto lg:pb-8">
+      <h1 class="text-xl font-bold text-sky-800 mb-6 lg:hidden">Гид по C#</h1>
+      <nav id="desktop-nav" class="flex flex-col space-y-2">
+        <a href="#async-vs-parallel"
+          class="nav-link p-3 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors">Асинхронность vs
+          Параллелизм</a>
+        <a href="#deadlocks" class="nav-link p-3 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors">Дедлоки
+          и ConfigureAwait</a>
+        <a href="#streaming"
+          class="nav-link p-3 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors">Стриминг с
+          IAsyncEnumerable</a>
+        <a href="#exceptions"
+          class="nav-link p-3 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors">Обработка исключений</a>
+        <a href="#frozen" class="nav-link p-3 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors">Frozen
+          коллекции</a>
+      </nav>
+    </aside>
 
-                        <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
-                            <h3 class="font-bold text-xl mb-3 text-emerald-700">Параллелизм (Много поваров, одна задача)</h3>
-                            <p class="mb-4">Несколько потоков (поваров) одновременно работают над одной большой, ресурсоемкой задачей (например, нарезка овощей для салата), чтобы закончить её быстрее.</p>
-                             <div class="border-2 border-dashed border-slate-300 p-4 rounded-lg text-center">
-                                <div class="text-4xl mb-2">🥕</div>
-                                <div class="font-semibold">Сложное вычисление</div>
-                                <div class="flex justify-around items-center mt-4">
-                                    <div class="text-center">
-                                        <div class="text-2xl">👨‍🍳</div>
-                                        <div class="text-xs">Поток 1</div>
-                                    </div>
-                                    <div class="text-center">
-                                        <div class="text-2xl">👩‍🍳</div>
-                                        <div class="text-xs">Поток 2</div>
-                                    </div>
-                                    <div class="text-center">
-                                        <div class="text-2xl">👨‍🍳</div>
-                                        <div class="text-xs">Поток 3</div>
-                                    </div>
-                                </div>
-                                <p class="text-sm mt-4 text-slate-500">Задача разбивается и выполняется на нескольких ядрах CPU одновременно.</p>
-                            </div>
-                        </div>
-                    </div>
-                     <div class="bg-sky-50 p-4 rounded-lg border-l-4 border-sky-500">
-                        <p><span class="font-bold">Вывод:</span> Используйте <code class="font-mono bg-sky-100 px-1 rounded">async/await</code> для I/O-bound операций (работа с сетью, файлами, БД), чтобы освободить поток. Используйте <code class="font-mono bg-sky-100 px-1 rounded">Task.Run</code> или <code class="font-mono bg-sky-100 px-1 rounded">Parallel.ForEach</code> для CPU-bound операций (сложные вычисления, обработка изображений), чтобы распараллелить работу на несколько ядер.</p>
-                    </div>
-                </section>
+    <main class="flex-1 p-4 sm:p-6 lg:p-8 lg:ml-64">
+      <header class="lg:hidden mb-4">
+        <select id="mobile-nav" class="w-full p-3 border border-slate-300 rounded-lg bg-white">
+          <option value="#async-vs-parallel">Асинхронность vs Параллелизм</option>
+          <option value="#deadlocks">Дедлоки и ConfigureAwait</option>
+          <option value="#streaming">Стриминг с IAsyncEnumerable</option>
+          <option value="#exceptions">Обработка исключений</option>
+          <option value="#frozen">Frozen коллекции</option>
+        </select>
+      </header>
 
-                <section id="deadlocks" class="content-section space-y-6 hidden">
-                    <h2 class="text-3xl font-bold text-slate-900">Дедлоки и ConfigureAwait(false)</h2>
-                    <p class="text-lg text-slate-600">Дедлок (взаимная блокировка) в асинхронном коде часто возникает из-за захвата контекста синхронизации. Например, в UI-приложениях или старых версиях ASP.NET, когда асинхронный метод пытается вернуться в основной поток, который в это время его синхронно ожидает.</p>
-                    
-                    <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
-                        <h3 class="font-bold text-xl mb-3">Визуализация дедлока</h3>
-                         <div class="flex flex-col md:flex-row items-center justify-center gap-4 text-center">
-                            <div class="p-4 bg-rose-100 rounded-lg">
-                                <div class="text-3xl">🧵</div>
-                                <div>UI Поток</div>
-                                <p class="text-sm">Синхронно ждет (<code class="font-mono">.Result</code>) завершения задачи.</p>
-                            </div>
-                            <div class="font-bold text-2xl text-rose-500 transform rotate-90 md:rotate-0">→</div>
-                            <div class="p-4 bg-slate-100 rounded-lg">
-                                 <div class="text-3xl">⚙️</div>
-                                <div>Рабочий Поток</div>
-                                <p class="text-sm">Выполняет <code class="font-mono">await</code> и пытается вернуться в UI поток.</p>
-                            </div>
-                             <div class="font-bold text-2xl text-rose-500 transform rotate-90 md:rotate-0">→</div>
-                            <div class="p-4 bg-rose-100 rounded-lg">
-                                <div class="text-3xl">🔒</div>
-                                <div>UI Поток</div>
-                                <p class="text-sm">Заблокирован, не может обработать возвращение задачи.</p>
-                            </div>
-                        </div>
-                        <p class="text-center mt-4 font-semibold text-rose-700">Результат: Взаимная блокировка.</p>
-                    </div>
+      <div id="content-container">
+        <section id="async-vs-parallel" class="content-section space-y-6">
+          <h2 class="text-3xl font-bold text-slate-900">Асинхронность (I/O) vs. Параллелизм (CPU)</h2>
+          <p class="text-lg text-slate-600">Ключевое различие между асинхронностью и параллелизмом заключается в том,
+            как они управляют задачами. Асинхронность направлена на эффективное ожидание завершения операций, не
+            блокируя основной поток (например, запрос к базе данных). Параллелизм же использует несколько потоков для
+            одновременного выполнения нескольких вычислительных задач, задействуя несколько ядер процессора.</p>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                             <h3 class="font-bold text-xl mb-3">Проблемный код</h3>
-                             <pre class="code-block"><code class="language-csharp"><span class="comment">// UI-поток (например, обработчик клика)</span>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+              <h3 class="font-bold text-xl mb-3 text-sky-700">Асинхронность (Один повар, много дел)</h3>
+              <p class="mb-4">Один поток (повар) может запустить несколько долгих операций (поставить вариться суп,
+                запекаться мясо), и пока они выполняются, заниматься другими делами, не простаивая.</p>
+              <div class="border-2 border-dashed border-slate-300 p-4 rounded-lg text-center">
+                <div class="text-4xl mb-2">🧑‍🍳</div>
+                <div class="font-semibold">Поток 1</div>
+                <div class="flex justify-around items-center mt-4">
+                  <div class="text-center">
+                    <div class="text-2xl">🥣</div>
+                    <div class="text-xs">Запрос к API</div>
+                  </div>
+                  <div class="text-2xl animate-spin">⏳</div>
+                  <div class="text-center">
+                    <div class="text-2xl">📄</div>
+                    <div class="text-xs">Чтение файла</div>
+                  </div>
+                </div>
+                <p class="text-sm mt-4 text-slate-500">Поток не заблокирован, он свободен для других задач во время
+                  ожидания.</p>
+              </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+              <h3 class="font-bold text-xl mb-3 text-emerald-700">Параллелизм (Много поваров, одна задача)</h3>
+              <p class="mb-4">Несколько потоков (поваров) одновременно работают над одной большой, ресурсоемкой задачей
+                (например, нарезка овощей для салата), чтобы закончить её быстрее.</p>
+              <div class="border-2 border-dashed border-slate-300 p-4 rounded-lg text-center">
+                <div class="text-4xl mb-2">🥕</div>
+                <div class="font-semibold">Сложное вычисление</div>
+                <div class="flex justify-around items-center mt-4">
+                  <div class="text-center">
+                    <div class="text-2xl">👨‍🍳</div>
+                    <div class="text-xs">Поток 1</div>
+                  </div>
+                  <div class="text-center">
+                    <div class="text-2xl">👩‍🍳</div>
+                    <div class="text-xs">Поток 2</div>
+                  </div>
+                  <div class="text-center">
+                    <div class="text-2xl">👨‍🍳</div>
+                    <div class="text-xs">Поток 3</div>
+                  </div>
+                </div>
+                <p class="text-sm mt-4 text-slate-500">Задача разбивается и выполняется на нескольких ядрах CPU
+                  одновременно.</p>
+              </div>
+            </div>
+          </div>
+          <div class="bg-sky-50 p-4 rounded-lg border-l-4 border-sky-500">
+            <p><span class="font-bold">Вывод:</span> Используйте <code class="font-mono">async/await</code> для
+              I/O-bound операций (работа с сетью, файлами, БД), чтобы освободить поток. Используйте <code
+                class="font-mono">Task.Run</code> или <code class="font-mono">Parallel.ForEach</code> для CPU-bound
+              операций (сложные вычисления, обработка изображений), чтобы распараллелить работу на несколько ядер.</p>
+          </div>
+        </section>
+
+        <section id="deadlocks" class="content-section space-y-6 hidden">
+          <h2 class="text-3xl font-bold text-slate-900">Дедлоки и ConfigureAwait(false)</h2>
+          <p class="text-lg text-slate-600">Дедлок (взаимная блокировка) в асинхронном коде часто возникает из-за
+            захвата контекста синхронизации. Например, в UI-приложениях или старых версиях ASP.NET, когда асинхронный
+            метод пытается вернуться в основной поток, который в это время его синхронно ожидает.</p>
+
+          <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+            <h3 class="font-bold text-xl mb-3">Визуализация дедлока</h3>
+            <div class="flex flex-col md:flex-row items-center justify-center gap-4 text-center">
+              <div class="p-4 bg-rose-100 rounded-lg">
+                <div class="text-3xl">🧵</div>
+                <div>UI Поток</div>
+                <p class="text-sm">Синхронно ждет (<code class="font-mono">.Result</code>) завершения задачи.</p>
+              </div>
+              <div class="font-bold text-2xl text-rose-500 transform rotate-90 md:rotate-0">→</div>
+              <div class="p-4 bg-slate-100 rounded-lg">
+                <div class="text-3xl">⚙️</div>
+                <div>Рабочий Поток</div>
+                <p class="text-sm">Выполняет <code class="font-mono">await</code> и пытается вернуться в UI поток.</p>
+              </div>
+              <div class="font-bold text-2xl text-rose-500 transform rotate-90 md:rotate-0">→</div>
+              <div class="p-4 bg-rose-100 rounded-lg">
+                <div class="text-3xl">🔒</div>
+                <div>UI Поток</div>
+                <p class="text-sm">Заблокирован, не может обработать возвращение задачи.</p>
+              </div>
+            </div>
+            <p class="text-center mt-4 font-semibold text-rose-700">Результат: Взаимная блокировка.</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 class="font-bold text-xl mb-3">Проблемный код</h3>
+              <pre class="code-block"><code class="language-csharp"><span class="comment">// UI-поток (например, обработчик клика)</span>
 <span class="keyword">private void</span> <span class="method">Button_Click</span>(...)
 {
     <span class="comment">// .Result блокирует UI-поток до завершения задачи</span>
@@ -229,10 +331,10 @@
     <span class="keyword">await</span> <span class="type">Task</span>.<span class="method">Delay</span>(1000); 
     <span class="keyword">return</span> 42;
 }</code></pre>
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-xl mb-3">Решение с ConfigureAwait(false)</h3>
-                             <pre class="code-block"><code class="language-csharp"><span class="comment">// UI-поток остается без изменений (проблема в библиотеке)</span>
+            </div>
+            <div>
+              <h3 class="font-bold text-xl mb-3">Решение с ConfigureAwait(false)</h3>
+              <pre class="code-block"><code class="language-csharp"><span class="comment">// UI-поток остается без изменений (проблема в библиотеке)</span>
 <span class="keyword">private void</span> <span class="method">Button_Click</span>(...) { ... }
 
 <span class="comment">// Библиотечный/сервисный код</span>
@@ -244,28 +346,35 @@
     <span class="comment">// После этого вызова код выполняется в потоке из пула</span>
     <span class="keyword">return</span> 42;
 }</code></pre>
-                        </div>
-                    </div>
-                     <div class="bg-sky-50 p-4 rounded-lg border-l-4 border-sky-500">
-                        <p><span class="font-bold">Правило:</span> Всегда используйте <code class="font-mono bg-sky-100 px-1 rounded">ConfigureAwait(false)</code> в библиотечном коде (сервисы, утилиты, NuGet-пакеты), которому не нужен доступ к UI или контексту запроса. В коде верхнего уровня (контроллеры, ViewModels, обработчики событий UI) его использовать не нужно.</p>
-                    </div>
-                </section>
-                
-                <section id="streaming" class="content-section space-y-6 hidden">
-                    <h2 class="text-3xl font-bold text-slate-900">Стриминг с IAsyncEnumerable</h2>
-                    <p class="text-lg text-slate-600">Интерфейс <code class="font-mono bg-slate-200 px-1 rounded">IAsyncEnumerable&lt;T&gt;</code> и оператор <code class="font-mono bg-slate-200 px-1 rounded">await foreach</code> позволяют обрабатывать коллекции данных асинхронно и по частям (стриминг). Это кардинально снижает потребление памяти при работе с большими наборами данных, так как не нужно загружать всю коллекцию в память сразу.</p>
-                    
-                    <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
-                        <h3 class="font-bold text-xl mb-3 text-center">Сравнение потребления памяти</h3>
-                        <div class="chart-container">
-                            <canvas id="memoryChart"></canvas>
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <h3 class="font-bold text-xl mb-3">Старый подход: Загрузка в память</h3>
-                            <pre class="code-block"><code class="language-csharp"><span class="keyword">public async</span> <span class="type">Task</span>&lt;<span class="type">List</span>&gt; <span class="method">GetItemsAsync</span>()
+            </div>
+          </div>
+          <div class="bg-sky-50 p-4 rounded-lg border-l-4 border-sky-500">
+            <p><span class="font-bold">Правило:</span> Всегда используйте <code
+                class="font-mono">ConfigureAwait(false)</code> в библиотечном коде (сервисы, утилиты, NuGet-пакеты),
+              которому не нужен доступ к UI или контексту запроса. В коде верхнего уровня (контроллеры, ViewModels,
+              обработчики событий UI) его использовать не нужно.</p>
+          </div>
+        </section>
+
+        <section id="streaming" class="content-section space-y-6 hidden">
+          <h2 class="text-3xl font-bold text-slate-900">Стриминг с IAsyncEnumerable</h2>
+          <p class="text-lg text-slate-600">Интерфейс <code class="font-mono">IAsyncEnumerable&lt;T&gt;</code> и
+            оператор <code class="font-mono">await foreach</code> позволяют обрабатывать коллекции данных асинхронно и
+            по частям (стриминг). Это кардинально снижает потребление памяти при работе с большими наборами данных, так
+            как не нужно загружать всю коллекцию в память сразу.</p>
+
+          <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+            <h3 class="font-bold text-xl mb-3 text-center">Сравнение потребления памяти</h3>
+            <div class="chart-container">
+              <canvas id="memoryChart"></canvas>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 class="font-bold text-xl mb-3">Старый подход: Загрузка в память</h3>
+              <pre
+                class="code-block"><code class="language-csharp"><span class="keyword">public async</span> <span class="type">Task</span>&lt;<span class="type">List</span>&gt; <span class="method">GetItemsAsync</span>()
 {
     <span class="keyword">var</span> items = <span class="keyword">new</span> <span class="type">List</span>&lt;<span class="type">Item</span>&gt;();
     <span class="comment">// Загружаем ВСЕ 1,000,000 записей в список</span>
@@ -277,10 +386,10 @@
 }
 <span class="comment">// Потребуется огромное количество RAM</span>
 <span class="keyword">var</span> allItems = <span class="keyword">await</span> <span class="method">GetItemsAsync</span>(); </code></pre>
-                        </div>
-                        <div>
-                           <h3 class="font-bold text-xl mb-3">Новый подход: Стриминг</h3>
-                           <pre class="code-block"><code class="language-csharp"><span class="keyword">public async</span> <span class="type">IAsyncEnumerable</span>&lt;<span class="type">Item</span>&gt; <span class="method">GetItemsStreamAsync</span>()
+            </div>
+            <div>
+              <h3 class="font-bold text-xl mb-3">Новый подход: Стриминг</h3>
+              <pre class="code-block"><code class="language-csharp"><span class="keyword">public async</span> <span class="type">IAsyncEnumerable</span>&lt;<span class="type">Item</span>&gt; <span class="method">GetItemsStreamAsync</span>()
 {
     <span class="comment">// Отдаем по одной записи, не храня их все</span>
     <span class="keyword">for</span>(<span class="keyword">int</span> i = 0; i &lt; 1_000_000; i++)
@@ -293,21 +402,27 @@
 {
     <span class="comment">// Обрабатываем один item</span>
 }</code></pre>
-                        </div>
-                    </div>
-                     <div class="bg-sky-50 p-4 rounded-lg border-l-4 border-sky-500">
-                        <p><span class="font-bold">Применение:</span> Идеально для обработки больших файлов, результатов запросов к БД, получения данных из API с пагинацией. <code class="font-mono bg-sky-100 px-1 rounded">IAsyncEnumerable</code> также поддерживает <code class="font-mono bg-sky-100 px-1 rounded">CancellationToken</code>, что позволяет элегантно реализовывать отмену и тайм-ауты длительных операций.</p>
-                    </div>
-                </section>
+            </div>
+          </div>
+          <div class="bg-sky-50 p-4 rounded-lg border-l-4 border-sky-500">
+            <p><span class="font-bold">Применение:</span> Идеально для обработки больших файлов, результатов запросов к
+              БД, получения данных из API с пагинацией. <code class="font-mono">IAsyncEnumerable</code> также
+              поддерживает <code class="font-mono">CancellationToken</code>, что позволяет элегантно реализовывать
+              отмену и тайм-ауты длительных операций.</p>
+          </div>
+        </section>
 
-                <section id="exceptions" class="content-section space-y-6 hidden">
-                    <h2 class="text-3xl font-bold text-slate-900">Централизованная обработка исключений</h2>
-                    <p class="text-lg text-slate-600">Использование <code class="font-mono bg-slate-200 px-1 rounded">async void</code> крайне опасно, так как исключения, выброшенные в таком методе, не могут быть пойманы стандартным блоком <code class="font-mono bg-slate-200 px-1 rounded">try-catch</code>. Это приводит к "потерянным" исключениям и аварийному завершению приложения. Всегда предпочитайте <code class="font-mono bg-slate-200 px-1 rounded">async Task</code>.</p>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
-                            <h3 class="font-bold text-xl mb-3 text-rose-700">Опасно: async void</h3>
-                            <pre class="code-block"><code class="language-csharp"><span class="keyword">try</span>
+        <section id="exceptions" class="content-section space-y-6 hidden">
+          <h2 class="text-3xl font-bold text-slate-900">Централизованная обработка исключений</h2>
+          <p class="text-lg text-slate-600">Использование <code class="font-mono">async void</code> крайне опасно, так
+            как исключения, выброшенные в таком методе, не могут быть пойманы стандартным блоком <code
+              class="font-mono">try-catch</code>. Это приводит к "потерянным" исключениям и аварийному завершению
+            приложения. Всегда предпочитайте <code class="font-mono">async Task</code>.</p>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+              <h3 class="font-bold text-xl mb-3 text-rose-700">Опасно: async void</h3>
+              <pre class="code-block"><code class="language-csharp"><span class="keyword">try</span>
 {
     <span class="method">FireAndForget</span>(); <span class="comment">// Вызывает async void метод</span>
 }
@@ -321,17 +436,17 @@
     <span class="keyword">await</span> <span class="type">Task</span>.<span class="method">Delay</span>(100);
     <span class="keyword">throw new</span> <span class="type">InvalidOperationException</span>();
 }</code></pre>
-                            <div class="border-2 border-dashed border-rose-300 p-4 rounded-lg text-center mt-4">
-                                <div class="text-3xl">💥</div>
-                                <div class="font-semibold">Исключение</div>
-                                <div class="text-4xl my-2 text-rose-400">↓</div>
-                                <div class="p-2 bg-rose-100 rounded-lg text-rose-800">Процесс падает!</div>
-                            </div>
-                        </div>
+              <div class="border-2 border-dashed border-rose-300 p-4 rounded-lg text-center mt-4">
+                <div class="text-3xl">💥</div>
+                <div class="font-semibold">Исключение</div>
+                <div class="text-4xl my-2 text-rose-400">↓</div>
+                <div class="p-2 bg-rose-100 rounded-lg text-rose-800">Процесс падает!</div>
+              </div>
+            </div>
 
-                        <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
-                            <h3 class="font-bold text-xl mb-3 text-emerald-700">Правильно: async Task</h3>
-                            <pre class="code-block"><code class="language-csharp"><span class="keyword">try</span>
+            <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+              <h3 class="font-bold text-xl mb-3 text-emerald-700">Правильно: async Task</h3>
+              <pre class="code-block"><code class="language-csharp"><span class="keyword">try</span>
 {
     <span class="keyword">await</span> <span class="method">ProcessAsync</span>(); <span class="comment">// Вызывает async Task метод</span>
 }
@@ -346,34 +461,43 @@
     <span class="keyword">await</span> <span class="type">Task</span>.<span class="method">Delay</span>(100);
     <span class="keyword">throw new</span> <span class="type">InvalidOperationException</span>();
 }</code></pre>
-                            <div class="border-2 border-dashed border-emerald-300 p-4 rounded-lg text-center mt-4">
-                                <div class="text-3xl">💥</div>
-                                <div class="font-semibold">Исключение</div>
-                                <div class="text-4xl my-2 text-emerald-400">↓</div>
-                                <div class="p-2 bg-emerald-100 rounded-lg text-emerald-800">Перехвачено в <code class="font-mono">try-catch</code></div>
-                            </div>
-                        </div>
-                    </div>
-                     <div class="bg-sky-50 p-4 rounded-lg border-l-4 border-sky-500">
-                        <p><span class="font-bold">Единственное исключение:</span> <code class="font-mono bg-sky-100 px-1 rounded">async void</code> допустим только для обработчиков событий верхнего уровня (например, клик по кнопке), так как их сигнатура требует <code class="font-mono bg-sky-100 px-1 rounded">void</code>. Но даже в этом случае весь код следует обернуть в <code class="font-mono bg-sky-100 px-1 rounded">try-catch</code> внутри самого обработчика.</p>
-                    </div>
-                </section>
-                
-                <section id="frozen" class="content-section space-y-6 hidden">
-                    <h2 class="text-3xl font-bold text-slate-900">System.Collections.Frozen</h2>
-                    <p class="text-lg text-slate-600">"Замороженные" коллекции (<code class="font-mono bg-slate-200 px-1 rounded">FrozenDictionary</code> и <code class="font-mono bg-slate-200 px-1 rounded">FrozenSet</code>) — это высокопроизводительные, неизменяемые аналоги <code class="font-mono bg-slate-200 px-1 rounded">Dictionary</code> и <code class="font-mono bg-slate-200 px-1 rounded">HashSet</code>. Они создаются один раз и оптимизированы для максимально быстрого чтения. Идеальны для коллекций, которые не меняются после инициализации (например, справочники, кэши конфигурации).</p>
+              <div class="border-2 border-dashed border-emerald-300 p-4 rounded-lg text-center mt-4">
+                <div class="text-3xl">💥</div>
+                <div class="font-semibold">Исключение</div>
+                <div class="text-4xl my-2 text-emerald-400">↓</div>
+                <div class="p-2 bg-emerald-100 rounded-lg text-emerald-800">Перехвачено в <code
+                    class="font-mono">try-catch</code></div>
+              </div>
+            </div>
+          </div>
+          <div class="bg-sky-50 p-4 rounded-lg border-l-4 border-sky-500">
+            <p><span class="font-bold">Единственное исключение:</span> <code class="font-mono">async void</code>
+              допустим только для обработчиков событий верхнего уровня (например, клик по кнопке), так как их сигнатура
+              требует <code class="font-mono">void</code>. Но даже в этом случае весь код следует обернуть в <code
+                class="font-mono">try-catch</code> внутри самого обработчика.</p>
+          </div>
+        </section>
 
-                    <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
-                        <h3 class="font-bold text-xl mb-3 text-center">Сравнение производительности поиска</h3>
-                        <p class="text-center text-sm text-slate-500 mb-4">Сравнение среднего времени доступа к элементу в коллекции из 10,000 элементов.</p>
-                        <div class="chart-container">
-                            <canvas id="frozenChart"></canvas>
-                        </div>
-                    </div>
+        <section id="frozen" class="content-section space-y-6 hidden">
+          <h2 class="text-3xl font-bold text-slate-900">System.Collections.Frozen</h2>
+          <p class="text-lg text-slate-600">"Замороженные" коллекции (<code class="font-mono">FrozenDictionary</code> и
+            <code class="font-mono">FrozenSet</code>) — это высокопроизводительные, неизменяемые аналоги <code
+              class="font-mono">Dictionary</code> и <code class="font-mono">HashSet</code>. Они создаются один раз и
+            оптимизированы для максимально быстрого чтения. Идеальны для коллекций, которые не меняются после
+            инициализации (например, справочники, кэши конфигурации).</p>
 
-                    <div>
-                        <h3 class="font-bold text-xl mb-3">Пример использования</h3>
-                        <pre class="code-block"><code class="language-csharp"><span class="comment">// 1. Создаем обычный словарь</span>
+          <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+            <h3 class="font-bold text-xl mb-3 text-center">Сравнение производительности поиска</h3>
+            <p class="text-center text-sm text-slate-500 mb-4">Сравнение среднего времени доступа к элементу в коллекции
+              из 10,000 элементов.</p>
+            <div class="chart-container">
+              <canvas id="frozenChart"></canvas>
+            </div>
+          </div>
+
+          <div>
+            <h3 class="font-bold text-xl mb-3">Пример использования</h3>
+            <pre class="code-block"><code class="language-csharp"><span class="comment">// 1. Создаем обычный словарь</span>
 <span class="keyword">var</span> sourceDict = <span class="keyword">new</span> <span class="type">Dictionary</span>&lt;<span class="type">int</span>, <span class="type">string</span>&gt;();
 <span class="comment">// ... заполняем его данными ...</span>
 sourceDict.<span class="method">Add</span>(1, <span class="string">"One"</span>);
@@ -389,222 +513,234 @@ sourceDict.<span class="method">Add</span>(2, <span class="string">"Two"</span>)
     <span class="comment">// Этот поиск значительно быстрее, чем в обычном словаре,</span>
     <span class="comment">// особенно на больших коллекциях.</span>
 }</code></pre>
-                    </div>
-                    <div class="bg-sky-50 p-4 rounded-lg border-l-4 border-sky-500">
-                        <p><span class="font-bold">Когда использовать:</span> Применяйте <code class="font-mono bg-sky-100 px-1 rounded">Frozen</code> коллекции, когда у вас есть набор данных, который инициализируется при старте приложения и затем многократно используется для чтения. Затраты на создание окупаются значительным приростом скорости при последующих операциях поиска.</p>
-                    </div>
-                </section>
-            </div>
-        </main>
+          </div>
+          <div class="bg-sky-50 p-4 rounded-lg border-l-4 border-sky-500">
+            <p><span class="font-bold">Когда использовать:</span> Применяйте <code class="font-mono">Frozen</code>
+              коллекции, когда у вас есть набор данных, который инициализируется при старте приложения и затем
+              многократно используется для чтения. Затраты на создание окупаются значительным приростом скорости при
+              последующих операциях поиска.</p>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <footer class="bg-white border-t border-slate-200 py-6">
+    <div class="container mx-auto px-4 flex flex-col items-center justify-center space-y-4">
+      <img id="footer-logo" src="assets/img/CodeWarlord-logo-dark-1.1.png" alt="CodeWarlord Logo"
+        class="h-[120px] w-auto">
+      <div class="text-center text-slate-500">
+        &copy; <span id="current-year"></span>, страница создана
+        <a href="https://t.me/CodeWarlord" class="text-sky-700 hover:underline">@CodeWarlord</a>.
+      </div>
     </div>
+  </footer>
 
-    <footer class="bg-white border-t border-slate-200 py-6 mt-12">
-        <div class="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
-            <div class="flex items-center space-x-2">
-                <img id="footer-logo" src="CodeWarlord-logo-light-1.1.jpg" alt="CodeWarlord Logo" class="h-10">
-                <span class="text-slate-500">
-                    &copy; <span id="current-year"></span>, страница создана
-                    <a href="https://t.me/CodeWarlord" class="text-sky-700 hover:underline">@CodeWarlord</a>.
-                </span>
-            </div>
-        </div>
-    </footer>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const navLinks = document.querySelectorAll('.nav-link');
+      const mobileNav = document.getElementById('mobile-nav');
+      const sections = document.querySelectorAll('.content-section');
+      const contentContainer = document.getElementById('content-container');
+      const yearSpan = document.getElementById('current-year');
+      const themeToggle = document.getElementById('theme-toggle');
+      const themeIconLight = document.getElementById('theme-icon-light');
+      const themeIconDark = document.getElementById('theme-icon-dark');
+      const body = document.body;
+      const headerLogo = document.getElementById('header-logo');
+      const footerLogo = document.getElementById('footer-logo');
+      const sidebar = document.getElementById('sidebar');
+      const menuToggle = document.getElementById('menu-toggle');
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const navLinks = document.querySelectorAll('.nav-link');
-            const mobileNav = document.getElementById('mobile-nav');
-            const sections = document.querySelectorAll('.content-section');
-            const contentContainer = document.getElementById('content-container');
-            const yearSpan = document.getElementById('current-year');
-            const themeToggle = document.getElementById('theme-toggle');
-            const themeIcon = document.getElementById('theme-icon');
-            const body = document.body;
-            const headerLogo = document.getElementById('header-logo');
-            const footerLogo = document.getElementById('footer-logo');
+      yearSpan.textContent = new Date().getFullYear();
 
-            yearSpan.textContent = new Date().getFullYear();
+      const logos = {
+        light: {
+          header: 'assets/img/CodeWarlord-logo-light-1.2.png',
+          footer: 'assets/img/CodeWarlord-logo-light-1.1.png'
+        },
+        dark: {
+          header: 'assets/img/CodeWarlord-logo-dark-1.2.png',
+          footer: 'assets/img/CodeWarlord-logo-dark-1.1.png'
+        }
+      };
 
-            const logos = {
-                light: {
-                    header: 'CodeWarlord-logo-light-1.2.jpg',
-                    footer: 'CodeWarlord-logo-light-1.1.jpg'
-                },
-                dark: {
-                    header: 'ChatGPT Image 17 сент. 2025 г., 15_36_36.jpg',
-                    footer: 'ba5836f5-2b49-481a-9379-cebc9eb3a9b9.jpg'
-                }
-            };
+      function updateTheme(isDark) {
+        if (isDark) {
+          body.classList.remove('light-theme');
+          body.classList.add('dark-theme');
+          themeIconLight.classList.add('hidden');
+          themeIconDark.classList.remove('hidden');
+          headerLogo.src = logos.dark.header;
+          footerLogo.src = logos.dark.footer;
+        } else {
+          body.classList.remove('dark-theme');
+          body.classList.add('light-theme');
+          themeIconLight.classList.remove('hidden');
+          themeIconDark.classList.add('hidden');
+          headerLogo.src = logos.light.header;
+          footerLogo.src = logos.light.footer;
+        }
+      }
 
-            function updateTheme(isDark) {
-                if (isDark) {
-                    body.classList.remove('light-theme');
-                    body.classList.add('dark-theme');
-                    themeIcon.textContent = '☀️';
-                    headerLogo.src = logos.dark.header;
-                    footerLogo.src = logos.dark.footer;
-                } else {
-                    body.classList.remove('dark-theme');
-                    body.classList.add('light-theme');
-                    themeIcon.textContent = '🌙';
-                    headerLogo.src = logos.light.header;
-                    footerLogo.src = logos.light.footer;
-                }
-            }
+      themeToggle.addEventListener('click', () => {
+        const isDark = body.classList.contains('dark-theme');
+        updateTheme(!isDark);
+      });
 
-            themeToggle.addEventListener('click', () => {
-                const isDark = body.classList.contains('dark-theme');
-                updateTheme(!isDark);
-            });
+      function setActiveSection(hash) {
+        const targetHash = hash || location.hash || '#async-vs-parallel';
 
-            function setActiveSection(hash) {
-                const targetHash = hash || location.hash || '#async-vs-parallel';
-                
-                sections.forEach(section => {
-                    if ('#' + section.id === targetHash) {
-                        section.classList.remove('hidden');
-                    } else {
-                        section.classList.add('hidden');
-                    }
-                });
-
-                navLinks.forEach(link => {
-                    if (link.getAttribute('href') === targetHash) {
-                        link.classList.add('active');
-                    } else {
-                        link.classList.remove('active');
-                    }
-                });
-
-                if (mobileNav.value !== targetHash) {
-                    mobileNav.value = targetHash;
-                }
-                
-                contentContainer.scrollTop = 0;
-            }
-
-            document.getElementById('desktop-nav').addEventListener('click', e => {
-                if (e.target.tagName === 'A') {
-                    e.preventDefault();
-                    const targetHash = e.target.getAttribute('href');
-                    history.pushState(null, null, targetHash);
-                    setActiveSection(targetHash);
-                }
-            });
-            
-            mobileNav.addEventListener('change', e => {
-                const targetHash = e.target.value;
-                history.pushState(null, null, targetHash);
-                setActiveSection(targetHash);
-            });
-
-            window.addEventListener('popstate', () => {
-                setActiveSection(location.hash);
-            });
-
-            setActiveSection();
-
-            function createMemoryChart() {
-                const ctx = document.getElementById('memoryChart')?.getContext('2d');
-                if (!ctx) return;
-                new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: ['Начало', 'Обработка 25%', 'Обработка 50%', 'Обработка 75%', 'Конец'],
-                        datasets: [{
-                            label: 'List<T> (старый подход)',
-                            data: [5, 150, 300, 450, 600],
-                            borderColor: 'rgb(239, 68, 68)',
-                            backgroundColor: 'rgba(239, 68, 68, 0.2)',
-                            fill: true,
-                            tension: 0.1
-                        }, {
-                            label: 'IAsyncEnumerable (стриминг)',
-                            data: [5, 6, 5, 7, 5],
-                            borderColor: 'rgb(34, 197, 94)',
-                            backgroundColor: 'rgba(34, 197, 94, 0.2)',
-                            fill: true,
-                            tension: 0.1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                title: {
-                                    display: true,
-                                    text: 'Потребление памяти (МБ)'
-                                }
-                            }
-                        },
-                        plugins: {
-                           tooltip: {
-                                mode: 'index',
-                                intersect: false
-                           }
-                        }
-                    }
-                });
-            }
-
-            function createFrozenChart() {
-                const ctx = document.getElementById('frozenChart')?.getContext('2d');
-                if (!ctx) return;
-                new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: ['Тип коллекции'],
-                        datasets: [{
-                            label: 'Dictionary<T, V>',
-                            data: [100],
-                            backgroundColor: 'rgba(249, 115, 22, 0.6)',
-                            borderColor: 'rgb(249, 115, 22)',
-                            borderWidth: 1
-                        }, {
-                            label: 'FrozenDictionary<T, V>',
-                            data: [25],
-                            backgroundColor: 'rgba(59, 130, 246, 0.6)',
-                            borderColor: 'rgb(59, 130, 246)',
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        indexAxis: 'y',
-                         scales: {
-                            x: {
-                                title: {
-                                    display: true,
-                                    text: 'Относительное время поиска (быстрее = меньше)'
-                                }
-                            }
-                        },
-                         plugins: {
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        let label = context.dataset.label || '';
-                                        if (label) {
-                                            label += ': ';
-                                        }
-                                        if (context.parsed.x !== null) {
-                                            label += `${context.parsed.x} у.е.`;
-                                        }
-                                        return label;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-            
-            createMemoryChart();
-            createFrozenChart();
+        sections.forEach(section => {
+          if ('#' + section.id === targetHash) {
+            section.classList.remove('hidden');
+          } else {
+            section.classList.add('hidden');
+          }
         });
-    </script>
+
+        navLinks.forEach(link => {
+          if (link.getAttribute('href') === targetHash) {
+            link.classList.add('active');
+          } else {
+            link.classList.remove('active');
+          }
+        });
+
+        if (mobileNav.value !== targetHash) {
+          mobileNav.value = targetHash;
+        }
+
+        contentContainer.scrollTop = 0;
+      }
+
+      document.getElementById('desktop-nav').addEventListener('click', e => {
+        if (e.target.tagName === 'A') {
+          e.preventDefault();
+          const targetHash = e.target.getAttribute('href');
+          history.pushState(null, null, targetHash);
+          setActiveSection(targetHash);
+        }
+      });
+
+      mobileNav.addEventListener('change', e => {
+        const targetHash = e.target.value;
+        history.pushState(null, null, targetHash);
+        setActiveSection(targetHash);
+      });
+
+      window.addEventListener('popstate', () => {
+        setActiveSection(location.hash);
+      });
+
+      setActiveSection();
+
+      menuToggle.addEventListener('click', () => {
+        sidebar.classList.toggle('-translate-x-full');
+      });
+
+      function createMemoryChart() {
+        const ctx = document.getElementById('memoryChart')?.getContext('2d');
+        if (!ctx) return;
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: ['Начало', 'Обработка 25%', 'Обработка 50%', 'Обработка 75%', 'Конец'],
+            datasets: [{
+              label: 'List<T> (старый подход)',
+              data: [5, 150, 300, 450, 600],
+              borderColor: 'rgb(239, 68, 68)',
+              backgroundColor: 'rgba(239, 68, 68, 0.2)',
+              fill: true,
+              tension: 0.1
+            }, {
+              label: 'IAsyncEnumerable (стриминг)',
+              data: [5, 6, 5, 7, 5],
+              borderColor: 'rgb(34, 197, 94)',
+              backgroundColor: 'rgba(34, 197, 94, 0.2)',
+              fill: true,
+              tension: 0.1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: 'Потребление памяти (МБ)'
+                }
+              }
+            },
+            plugins: {
+              tooltip: {
+                mode: 'index',
+                intersect: false
+              }
+            }
+          }
+        });
+      }
+
+      function createFrozenChart() {
+        const ctx = document.getElementById('frozenChart')?.getContext('2d');
+        if (!ctx) return;
+        new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: ['Тип коллекции'],
+            datasets: [{
+              label: 'Dictionary<T, V>',
+              data: [100],
+              backgroundColor: 'rgba(249, 115, 22, 0.6)',
+              borderColor: 'rgb(249, 115, 22)',
+              borderWidth: 1
+            }, {
+              label: 'FrozenDictionary<T, V>',
+              data: [25],
+              backgroundColor: 'rgba(59, 130, 246, 0.6)',
+              borderColor: 'rgb(59, 130, 246)',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y',
+            scales: {
+              x: {
+                title: {
+                  display: true,
+                  text: 'Относительное время поиска (быстрее = меньше)'
+                }
+              }
+            },
+            plugins: {
+              tooltip: {
+                callbacks: {
+                  label: function (context) {
+                    let label = context.dataset.label || '';
+                    if (label) {
+                      label += ': ';
+                    }
+                    if (context.parsed.x !== null) {
+                      label += `${context.parsed.x} у.е.`;
+                    }
+                    return label;
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+
+      createMemoryChart();
+      createFrozenChart();
+    });
+  </script>
 </body>
+
 </html>
